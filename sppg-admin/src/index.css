@@ -1,10 +1,35 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-surface text-ink font-sans antialiased;
+html, body, #root {
+  height: 100%;
+  background: #f6f8fb;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== TABLE STYLING (dipakai di halaman data) ===== */
+@layer components {
+  .table-base {
+    @apply w-full text-sm;
+  }
+  .table-base thead th {
+    @apply text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 border-b border-gray-200 bg-gray-50;
+  }
+  .table-base tbody td {
+    @apply px-4 py-3 border-b border-gray-100 text-gray-700;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-navy-50/40;
   }
 }

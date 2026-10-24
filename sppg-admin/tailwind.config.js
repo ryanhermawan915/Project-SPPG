@@ -1,26 +1,31 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-    content: ["./index.html", "./src/**/*.{js,jsx}"],
-    theme: {
-        extend: {
-        colors: {
-            primary: "#2563EB",
-            surface: "#F8FAFC",
-            card: "#FFFFFF",
-            ink: "#0F172A",
-            line: "#E2E8F0",
-            success: "#16A34A",
-            warning: "#D97706",
-            notif: "#9333EA",
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        // Warna utama: navy profesional (sesuai laporan & Figma)
+        navy: {
+          50:  '#eef3fb',
+          100: '#d7e2f5',
+          500: '#2563eb', // biru tombol (Figma)
+          700: '#1e40af',
+          900: '#0f2557',
         },
-        fontFamily: {
-            sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        },
-        borderRadius: { card: "14px" },
-        boxShadow: {
-            soft: "0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.04)",
-        },
-        },
+        // Status
+        success: '#22c55e',  // hijau: hadir / berhasil
+        warning: '#f59e0b',  // oranye: terlambat / menunggu
+        danger:  '#ef4444',  // merah: ditolak / alpha
+        pageBg:  '#f6f8fb',  // background abu-abu sangat muda
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      borderRadius: {
+        xl: '14px',
+        '2xl': '18px',
+      },
     },
-    plugins: [],
+  },
+  plugins: [],
 };

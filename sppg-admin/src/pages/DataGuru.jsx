@@ -1,84 +1,186 @@
-import { useMemo, useState } from "react";
-import { dataGuru } from "../data/dummy";
-import SearchFilter from "../components/ui/SearchFilter";
-import DataTable from "../components/ui/DataTable";
-import StatusBadge from "../components/ui/StatusBadge";
-import DetailDrawer from "../components/ui/DetailDrawer";
-import EmptyState from "../components/ui/EmptyState";
-
-const PAGE_SIZE = 5;
+import { useMemo, useState } from 'react';
+import { Search, Plus, Pencil, UserCheck, UserX, CheckCircle2, PowerOff, Power } from 'lucide-react';
+import Card from '../components/Card';
+import Badge from '../components/Badge';
+import Button from '../components/Button';
+import Modal from '../components/Modal';
+import { initialGuru } from '../data/dummyData';
 
 export default function DataGuru() {
-    const [q, setQ] = useState("");
-    const [status, setStatus] = useState("all");
-    const [page, setPage] = useState(1);
-    const [selected, setSelected] = useState(null);
+  const [guru, setGuru] = useState(initialGuru);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('semua');
+  const [toast, setToast] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
-    const filtered = useMemo(() => {
-        return dataGuru.filter((g) => {
-        const matchQ = g.nama.toLowerCase().includes(q.toLowerCase()) || (g.nomorPegawai ?? "").toLowerCase().includes(q.toLowerCase());
-        const matchStatus = status === "all" || g.status === status;
-        return matchQ && matchStatus;
-        });
-    }, [q, status]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return guru.filter((g) => {
+      const matchSearch = g.nama.toLowerCase().includes(q) || g.nip.includes(q) || g.email.toLowerCase().includes(q);
+      const matchFilter = filter === 'semua' || g.status === filter;
+      return matchSearch && matchFilter;
+    });
+  }, [guru, search, filter]);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const currentPage = Math.min(page, totalPages);
-    const rows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const askConfirm = (type, data) => setConfirm({ type, data });
+  const closeConfirm = () => setConfirm(null);
 
-    const columns = [
-        { key: "nama", label: "Nama" },
-        { key: "nomorPegawai", label: "No. Pegawai" },
-        { key: "email", label: "Email" },
-        { key: "status", label: "Status Akun", render: (r) => <StatusBadge status={r.status} /> },
-    ];
+  const handleConfirm = () => {
+    if (!confirm) return;
+    const { type, data } = confirm;
+    if (type === 'approve') {
+      setGuru((prev) => prev.map((g) => g.id === data.id ? { ...g, status: 'aktif' } : g));
+      setToast(`${data.nama} disetujui.`);
+    } else if (type === 'reject') {
+      setGuru((prev) => prev.map((g) => g.id === data.id ? { ...g, status: 'nonaktif' } : g));
+      setToast(`${data.nama} ditolak.`);
+    } else if (type === 'toggle') {
+      const next = data.status === 'aktif' ? 'nonaktif' : 'aktif';
+      setGuru((prev) => prev.map((g) => g.id === data.id ? { ...g, status: next } : g));
+      setToast(`${data.nama} → ${next}.`);
+    }
+    setConfirm(null);
+    setTimeout(() => setToast(null), 2200);
+  };
 
-    return (
-        <div className="space-y-4">
-        <div>
-            <h2 className="text-xl font-bold">Data Guru</h2>
-            <p className="text-sm text-ink/60 mt-1">Daftar guru dan karyawan. Data di bawah adalah dummy.</p>
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <Card className="!p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama, NIP, atau email…"
+              className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-300 bg-white text-sm outline-none focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            {['semua', 'aktif', 'pending', 'nonaktif'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`h-10 px-4 rounded-lg text-sm font-medium capitalize transition ${
+                  filter === f ? 'bg-navy-500 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {f === 'semua' ? 'Semua' : f}
+              </button>
+            ))}
+            <Button className="!w-auto !h-10">
+              <Plus size={16} /> Tambah
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        <SearchFilter value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari nama atau nomor pegawai…">
-            <select
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 rounded-lg border border-line bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-            <option value="all">Semua Status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Nonaktif">Nonaktif</option>
-            </select>
-        </SearchFilter>
-
-        <section className="bg-card rounded-card border border-line shadow-soft p-4">
-            {rows.length === 0 ? (
-            <EmptyState title="Tidak ada data" description="Tidak ada pegawai yang sesuai filter." />
-            ) : (
-            <>
-                <DataTable columns={columns} rows={rows} onRowClick={setSelected} />
-                <div className="flex items-center justify-between mt-3 text-sm">
-                <p className="text-ink/50">Halaman {currentPage} dari {totalPages}</p>
-                <div className="flex gap-2">
-                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 rounded-lg border border-line disabled:opacity-50 hover:bg-surface">Sebelumnya</button>
-                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 rounded-lg border border-line disabled:opacity-50 hover:bg-surface">Berikutnya</button>
-                </div>
-                </div>
-            </>
-            )}
-        </section>
-
-        <DetailDrawer open={!!selected} title="Detail Pegawai" onClose={() => setSelected(null)}>
-            {selected && (
-            <dl className="space-y-3 text-sm">
-                <div><dt className="text-ink/50 text-xs">Nama</dt><dd>{selected.nama}</dd></div>
-                <div><dt className="text-ink/50 text-xs">No. Pegawai</dt><dd>{selected.nomorPegawai}</dd></div>
-                <div><dt className="text-ink/50 text-xs">Email</dt><dd>{selected.email}</dd></div>
-                <div><dt className="text-ink/50 text-xs">Status</dt><dd><StatusBadge status={selected.status} /></dd></div>
-            </dl>
-            )}
-        </DetailDrawer>
+      {toast && (
+        <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700 flex items-center gap-2">
+          <CheckCircle2 size={18} /> {toast}
         </div>
-    );
+      )}
+
+      {/* Tabel */}
+      <Card className="!p-0 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table-base">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>NIP</th>
+                <th>Jabatan</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th className="text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-10 text-gray-500">
+                    Tidak ada pegawai yang cocok.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((g) => (
+                  <tr key={g.id}>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center font-bold text-xs shrink-0">
+                          {g.nama[0]}
+                        </div>
+                        <span className="font-semibold text-gray-900">{g.nama}</span>
+                      </div>
+                    </td>
+                    <td className="text-gray-600">{g.nip}</td>
+                    <td className="text-gray-600">{g.jabatan}</td>
+                    <td className="text-gray-600">{g.email}</td>
+                    <td><Badge status={g.status} /></td>
+                    <td>
+                      <div className="flex items-center justify-end gap-2">
+                        {g.status === 'pending' ? (
+                          <>
+                            <button
+                              onClick={() => askConfirm('approve', g)}
+                              className="h-8 px-3 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 flex items-center gap-1"
+                            >
+                              <UserCheck size={14} /> Setujui
+                            </button>
+                            <button
+                              onClick={() => askConfirm('reject', g)}
+                              className="h-8 px-3 rounded-lg bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 flex items-center gap-1"
+                            >
+                              <UserX size={14} /> Tolak
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="h-8 px-3 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 flex items-center gap-1">
+                              <Pencil size={14} /> Edit
+                            </button>
+                            <button
+                              onClick={() => askConfirm('toggle', g)}
+                              className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1 ${
+                                g.status === 'aktif'
+                                  ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+                              }`}
+                            >
+                              {g.status === 'aktif' ? <><PowerOff size={14} /> Nonaktifkan</> : <><Power size={14} /> Aktifkan</>}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Modal
+        open={!!confirm}
+        title={
+          confirm?.type === 'approve' ? 'Setujui pendaftaran?' :
+          confirm?.type === 'reject'  ? 'Tolak pendaftaran?' :
+          confirm?.data?.status === 'aktif' ? 'Nonaktifkan akun?' : 'Aktifkan akun?'
+        }
+        message={
+          confirm?.type === 'approve'
+            ? `${confirm?.data?.nama} akan diaktifkan dan bisa login ke aplikasi.`
+            : confirm?.type === 'reject'
+            ? `${confirm?.data?.nama} akan ditolak. Tindakan ini dapat diubah kemudian.`
+            : `Akun ${confirm?.data?.nama} akan ${confirm?.data?.status === 'aktif' ? 'dinonaktifkan' : 'diaktifkan'}.`
+        }
+        variant={confirm?.type === 'approve' ? 'success' : 'danger'}
+        confirmText="Ya, lanjutkan"
+        onCancel={closeConfirm}
+        onConfirm={handleConfirm}
+      />
+    </div>
+  );
 }
