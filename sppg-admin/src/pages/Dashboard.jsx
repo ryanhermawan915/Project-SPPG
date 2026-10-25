@@ -43,7 +43,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* ===== 4 STAT CARD SEJAJAR ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <StatCard icon={<Users size={20} />} label="Total Pegawai" value={stats.totalPegawai} tone="navy" hint="Guru & karyawan" />
         <StatCard icon={<UserCheck size={20} />} label="Akun Aktif" value={stats.akunAktif} tone="success" hint="Dapat login" />
         <StatCard icon={<Clock size={20} />} label="Pending Approval" value={stats.pendingApproval} tone="warning" hint="Menunggu review" onClick={() => navigate('/data-guru')} />
@@ -113,14 +113,14 @@ function StatCard({ icon, label, value, tone, hint, onClick }) {
     info:    'bg-blue-50 text-blue-700',
   };
   return (
-    <Card onClick={onClick} className="!p-5">
+    <Card onClick={onClick}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl ${toneMap[tone]} flex items-center justify-center`}>
           {icon}
         </div>
         {onClick && <ArrowRight size={16} className="text-gray-400" />}
       </div>
-      <p className="text-3xl font-extrabold text-gray-900 leading-tight">{value}</p>
+      <p className="text-4xl font-extrabold text-gray-900 leading-tight">{value}</p>
       <p className="text-sm text-gray-700 font-medium mt-1">{label}</p>
       <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
     </Card>

@@ -16,7 +16,7 @@ export default function Topbar() {
   });
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30">
+    <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30">
       <div>
         <h2 className="text-base font-bold text-gray-900">{title}</h2>
         <p className="text-xs text-gray-500">{today}</p>
