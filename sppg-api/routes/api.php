@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Admin\EmployeeApprovalController;
+use App\Http\Controllers\Api\V1\Admin\EmployeeController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -53,4 +54,11 @@ Route::prefix('v1/admin')
             '/employees/{userId}/reject',
             [EmployeeApprovalController::class, 'reject']
         );
+
+        Route::get(
+        '/employees',
+        [EmployeeController::class, 'index']
+        );
     });
+
+    
