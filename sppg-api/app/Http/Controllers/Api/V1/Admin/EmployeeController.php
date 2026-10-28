@@ -48,4 +48,137 @@ class EmployeeController extends Controller
             ],
         ]);
     }
+
+    public function show(Request $request, int $userId): JsonResponse
+    {
+        // Hanya admin yang boleh mengakses detail pegawai.
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        $employee = User::with('employeeProfile')
+            ->where('role', 'employee')
+            ->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        $profile = $employee->employeeProfile;
+
+        return response()->json([
+            'message' => 'Detail pegawai berhasil diambil.',
+            'data' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
+                'role' => $employee->role,
+                'account_status' => $employee->account_status,
+                'employee_number' => $profile?->employee_number,
+                'position' => $profile?->position,
+                'phone' => $profile?->phone,
+                'address' => $profile?->address,
+                'approved_by' => $employee->approved_by,
+                'approved_at' => $employee->approved_at,
+                'created_at' => $employee->created_at,
+            ],
+        ]);
+    }
+
+    
+    public function update(Request $request, int $userId): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        $employee = User::with('employeeProfile')
+            ->where('role', 'employee')
+            ->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users', 'email')
+                    ->ignore($employee->id),
+            ],
+            'employee_number' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                \Illuminate\Validation\Rule::unique(
+                    'employee_profiles',
+                    'employee_number'
+                )->ignore($employee->employeeProfile?->id),
+            ],
+            'position' => 'sometimes|nullable|string|max:100',
+            'phone' => 'sometimes|nullable|string|max:30',
+            'address' => 'sometimes|nullable|string|max:1000',
+        ]);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use (
+            $employee,
+            $validated
+        ) {
+            if (array_key_exists('name', $validated)) {
+                $employee->name = $validated['name'];
+            }
+
+            if (array_key_exists('email', $validated)) {
+                $employee->email = strtolower($validated['email']);
+            }
+
+            $employee->save();
+
+            $profileData = array_intersect_key($validated, array_flip([
+                'employee_number',
+                'position',
+                'phone',
+                'address',
+            ]));
+
+            if (! empty($profileData)) {
+                $employee->employeeProfile()->updateOrCreate(
+                    ['user_id' => $employee->id],
+                    $profileData
+                );
+            }
+        });
+
+        $employee->refresh()->load('employeeProfile');
+        $profile = $employee->employeeProfile;
+
+        return response()->json([
+            'message' => 'Data pegawai berhasil diperbarui.',
+            'data' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
+                'role' => $employee->role,
+                'account_status' => $employee->account_status,
+                'employee_number' => $profile?->employee_number,
+                'position' => $profile?->position,
+                'phone' => $profile?->phone,
+                'address' => $profile?->address,
+            ],
+        ]);
+    }
+
 }

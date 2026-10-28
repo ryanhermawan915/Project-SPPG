@@ -59,6 +59,17 @@ Route::prefix('v1/admin')
         '/employees',
         [EmployeeController::class, 'index']
         );
+
+        Route::get(
+        '/employees/{userId}',
+        [EmployeeController::class, 'show']
+        );
+
+        Route::put(
+        '/employees/{userId}',
+        [EmployeeController::class, 'update']
+        );
+
     });
 
     
