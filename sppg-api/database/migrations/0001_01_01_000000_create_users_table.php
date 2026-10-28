@@ -8,52 +8,36 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'role')) {
-                $table->enum('role', ['admin', 'employee'])
-                    ->default('employee');
-            }
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
 
-            if (!Schema::hasColumn('users', 'account_status')) {
-                $table->enum('account_status', [
-                    'pending',
-                    'active',
-                    'rejected',
-                    'inactive',
-                ])->default('pending');
-            }
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
 
-            if (!Schema::hasColumn('users', 'approved_by')) {
-                $table->foreignId('approved_by')
-                    ->nullable()
-                    ->constrained('users')
-                    ->nullOnDelete();
-            }
-
-            if (!Schema::hasColumn('users', 'approved_at')) {
-                $table->timestamp('approved_at')->nullable();
-            }
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
         });
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'approved_by')) {
-                $table->dropForeign(['approved_by']);
-                $table->dropColumn('approved_by');
-            }
-
-            foreach ([
-                'role',
-                'account_status',
-                'approved_at',
-            ] as $column) {
-                if (Schema::hasColumn('users', $column)) {
-                    $table->dropColumn($column);
-                }
-            }
-        });
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('sessions');
     }
 };
-
