@@ -181,4 +181,80 @@ class EmployeeController extends Controller
         ]);
     }
 
+    public function deactivate(Request $request, int $userId): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        $employee = User::where('role', 'employee')->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        if ($employee->account_status !== 'active') {
+            return response()->json([
+                'message' => 'Hanya akun aktif yang dapat dinonaktifkan.',
+            ], 422);
+        }
+
+        $employee->update([
+            'account_status' => 'inactive',
+        ]);
+
+        // Cabut token agar sesi login yang sudah ada tidak tetap aktif.
+        $employee->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Akun pegawai berhasil dinonaktifkan.',
+            'data' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'account_status' => $employee->account_status,
+            ],
+        ]);
+    }
+
+    public function activate(Request $request, int $userId): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        $employee = User::where('role', 'employee')->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        if ($employee->account_status !== 'inactive') {
+            return response()->json([
+                'message' => 'Hanya akun nonaktif yang dapat diaktifkan kembali.',
+            ], 422);
+        }
+
+        $employee->update([
+            'account_status' => 'active',
+        ]);
+
+        return response()->json([
+            'message' => 'Akun pegawai berhasil diaktifkan kembali.',
+            'data' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'account_status' => $employee->account_status,
+            ],
+        ]);
+    }
+
+
 }

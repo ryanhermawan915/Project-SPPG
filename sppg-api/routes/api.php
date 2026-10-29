@@ -70,6 +70,16 @@ Route::prefix('v1/admin')
         [EmployeeController::class, 'update']
         );
 
+        Route::patch(
+        '/employees/{userId}/deactivate',
+        [EmployeeController::class, 'deactivate']
+        );
+
+        Route::patch(
+        '/employees/{userId}/activate',
+        [EmployeeController::class, 'activate']
+        );
+
     });
 
     
