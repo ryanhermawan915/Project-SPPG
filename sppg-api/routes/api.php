@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Admin\EmployeeApprovalController;
 use App\Http\Controllers\Api\V1\Admin\EmployeeController;
+use App\Http\Controllers\Api\V1\Admin\WorkScheduleController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -79,6 +80,15 @@ Route::prefix('v1/admin')
         '/employees/{userId}/activate',
         [EmployeeController::class, 'activate']
         );
+
+        
+        Route::get('/work-schedules', [WorkScheduleController::class, 'index']);
+        Route::post('/work-schedules', [WorkScheduleController::class, 'store']);
+        Route::get('/work-schedules/{id}', [WorkScheduleController::class, 'show']);
+        Route::put('/work-schedules/{id}', [WorkScheduleController::class, 'update']);
+        Route::patch('/work-schedules/{id}/activate', [WorkScheduleController::class, 'activate']);
+        Route::patch('/work-schedules/{id}/deactivate', [WorkScheduleController::class, 'deactivate']);
+
 
     });
 
