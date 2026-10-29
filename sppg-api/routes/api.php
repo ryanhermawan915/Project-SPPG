@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Admin\EmployeeApprovalController;
 use App\Http\Controllers\Api\V1\Admin\EmployeeController;
 use App\Http\Controllers\Api\V1\Admin\WorkScheduleController;
+use App\Http\Controllers\Api\V1\Admin\AcademicPeriodController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -89,6 +90,12 @@ Route::prefix('v1/admin')
         Route::patch('/work-schedules/{id}/activate', [WorkScheduleController::class, 'activate']);
         Route::patch('/work-schedules/{id}/deactivate', [WorkScheduleController::class, 'deactivate']);
 
+        Route::get('/academic-periods', [AcademicPeriodController::class, 'index']);
+        Route::post('/academic-periods', [AcademicPeriodController::class, 'store']);
+        Route::get('/academic-periods/{id}', [AcademicPeriodController::class, 'show']);
+        Route::put('/academic-periods/{id}', [AcademicPeriodController::class, 'update']);
+        Route::patch('/academic-periods/{id}/activate', [AcademicPeriodController::class, 'activate']);
+        Route::patch('/academic-periods/{id}/deactivate', [AcademicPeriodController::class, 'deactivate']);
 
     });
 
