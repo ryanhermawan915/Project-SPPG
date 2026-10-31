@@ -150,4 +150,9 @@ Route::prefix('v1/leave-requests')
     ->middleware('auth:sanctum')
     ->group(function () {
         Route::get('/', [AdminLeaveRequestController::class, 'index']);
+        Route::get('/{id}', [AdminLeaveRequestController::class, 'show']);
+        Route::patch('/{id}/approve', [AdminLeaveRequestController::class, 'approve']);
+        Route::patch('/{id}/reject', [AdminLeaveRequestController::class, 'reject']);   
     });
+
+    
