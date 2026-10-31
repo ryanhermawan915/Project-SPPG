@@ -250,4 +250,71 @@ public function checkOut(Request $request)
         ],
     ], 200);
 }
+
+// Riwayat presensi pegawai
+public function history(Request $request)
+{
+    // 1. Ambil pengguna yang sedang login
+    $user = $request->user();
+
+    // 2. Periksa status akun
+    if (
+        $user->role !== 'employee' ||
+        $user->account_status !== 'active'
+    ) {
+        return response()->json([
+            'message' => 'Akun tidak memiliki akses riwayat presensi.',
+        ], 403);
+    }
+
+    // 3. Validasi filter tanggal
+    $validated = $request->validate([
+        'start_date' => ['nullable', 'date_format:Y-m-d'],
+        'end_date' => [
+            'nullable',
+            'date_format:Y-m-d',
+            'after_or_equal:start_date',
+        ],
+    ]);
+
+    // 4. Ambil riwayat presensi milik pengguna
+    $query = AttendanceRecord::with('workSchedule')
+        ->where('user_id', $user->id);
+
+    // 5. Terapkan filter tanggal mulai
+    if (!empty($validated['start_date'])) {
+        $query->whereDate(
+            'attendance_date',
+            '>=',
+            $validated['start_date']
+        );
+    }
+
+    // 6. Terapkan filter tanggal akhir
+    if (!empty($validated['end_date'])) {
+        $query->whereDate(
+            'attendance_date',
+            '<=',
+            $validated['end_date']
+        );
+    }
+
+    // 7. Ambil data dengan pagination
+    $attendance = $query
+        ->orderByDesc('attendance_date')
+        ->paginate(10);
+
+    // 8. Kirim respons
+    return response()->json([
+        'message' => 'Riwayat presensi berhasil diambil.',
+        'data' => $attendance->items(),
+        'pagination' => [
+            'current_page' => $attendance->currentPage(),
+            'last_page' => $attendance->lastPage(),
+            'per_page' => $attendance->perPage(),
+            'total' => $attendance->total(),
+        ],
+    ], 200);
+}
+
 }

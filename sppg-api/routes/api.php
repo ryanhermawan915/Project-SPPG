@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\Admin\WorkScheduleController;
 use App\Http\Controllers\Api\V1\Admin\AcademicPeriodController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\Admin\SchoolLocationController;
+use App\Http\Controllers\Api\V1\LeaveRequestController;
+use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -125,4 +127,27 @@ Route::prefix('v1/admin')
     ->group(function () {
         Route::post('/check-in', [AttendanceController::class, 'checkIn']);
         Route::post('/check-out', [AttendanceController::class, 'checkOut']);
+        Route::get('/history', [AttendanceController::class, 'history']);
+    });
+
+Route::prefix('v1/leave-requests')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        // Mengajukan izin atau sakit
+        Route::post('/', [LeaveRequestController::class, 'store']);
+
+        // Melihat riwayat pengajuan
+        Route::get('/', [LeaveRequestController::class, 'index']);
+        Route::get('/{id}', [LeaveRequestController::class, 'show']);
+        // Download lampiran
+        Route::get(
+            '/{id}/attachment',
+            [LeaveRequestController::class, 'downloadAttachment']
+        );
+    });
+
+    Route::prefix('v1/admin/leave-requests')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', [AdminLeaveRequestController::class, 'index']);
     });
