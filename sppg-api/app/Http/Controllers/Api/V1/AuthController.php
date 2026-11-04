@@ -117,6 +117,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'account_status' => $user->account_status,
+                'must_change_password' => $user->must_change_password,
                 'employee_profile' => $profile ? [
                     'employee_number' => $profile->employee_number,
                     'position' => $profile->position,
@@ -142,6 +143,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'account_status' => $user->account_status,
+                'must_change_password' => $user->must_change_password,
                 'employee_profile' => $profile ? [
                     'employee_number' => $profile->employee_number,
                     'position' => $profile->position,
@@ -149,6 +151,41 @@ class AuthController extends Controller
                     'address' => $profile->address,
                 ] : null,
             ],
+        ]);
+    }
+
+        /**
+     * Mengganti password sementara atau password akun.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'Password saat ini tidak sesuai.',
+            ], 422);
+        }
+
+        if (Hash::check($validated['new_password'], $user->password)) {
+            return response()->json([
+                'message' => 'Password baru harus berbeda dari password saat ini.',
+            ], 422);
+        }
+
+        $user->password = $validated['new_password'];
+        $user->must_change_password = false;
+        $user->password_changed_at = now();
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password berhasil diperbarui.',
+            'must_change_password' => false,
         ]);
     }
 

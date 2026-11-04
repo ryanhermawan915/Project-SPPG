@@ -3,12 +3,73 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\FaceProfile;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 class EmployeeController extends Controller
 {
+    public function store(Request $request): JsonResponse
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak.',
+            ], 403);
+        }
+
+        // Validasi data karyawan
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'employee_number' => 'nullable|string|max:50|unique:employee_profiles,employee_number',
+            'position' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+        ]);
+
+        // Buat password sementara secara acak
+        $temporaryPassword = Str::random(12);
+
+        // Simpan akun dan profil karyawan dalam satu transaksi
+        $employee = DB::transaction(function () use ($validated, $temporaryPassword) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $temporaryPassword,
+                'role' => 'employee',
+                'account_status' => 'active',
+                'must_change_password' => true,
+                'password_changed_at' => null,
+            ]);
+
+            $user->employeeProfile()->create([
+                'employee_number' => $validated['employee_number'] ?? null,
+                'position' => $validated['position'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+            ]);
+
+            return $user;
+        });
+
+        return response()->json([
+            'message' => 'Akun karyawan berhasil dibuat.',
+            'data' => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
+                'role' => $employee->role,
+                'account_status' => $employee->account_status,
+                'must_change_password' => $employee->must_change_password,
+                'temporary_password' => $temporaryPassword,
+            ],
+        ], 201);
+    }
+
     public function index(Request $request): JsonResponse
     {
         // Pastikan hanya admin yang dapat mengakses endpoint ini.
@@ -120,7 +181,7 @@ class EmployeeController extends Controller
             ],
             'employee_number' => [
                 'sometimes',
-                'required',
+                'nullable',
                 'string',
                 'max:50',
                 \Illuminate\Validation\Rule::unique(
@@ -128,6 +189,7 @@ class EmployeeController extends Controller
                     'employee_number'
                 )->ignore($employee->employeeProfile?->id),
             ],
+
             'position' => 'sometimes|nullable|string|max:100',
             'phone' => 'sometimes|nullable|string|max:30',
             'address' => 'sometimes|nullable|string|max:1000',
