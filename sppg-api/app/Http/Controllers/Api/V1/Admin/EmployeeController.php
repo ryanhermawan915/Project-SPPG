@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FaceProfile;
+use App\Models\FaceProfileImage;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -241,6 +242,100 @@ class EmployeeController extends Controller
                 'address' => $profile?->address,
             ],
         ]);
+    }
+
+    public function uploadFaceImages(Request $request, int $userId): JsonResponse
+    {
+        // Pastikan hanya admin yang dapat mengunggah foto.
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        // Cari akun karyawan.
+        $employee = User::where('role', 'employee')->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        // Validasi foto yang diunggah.
+        $validated = $request->validate([
+            'images' => 'required|array|min:1',
+            'images.*' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'angles' => 'sometimes|array',
+            'angles.*' => 'nullable|string|max:30',
+        ]);
+
+        $storedPaths = [];
+
+        try {
+            DB::transaction(function () use (
+                $employee,
+                $request,
+                &$storedPaths
+            ) {
+                // Buat profil wajah jika belum tersedia.
+                $faceProfile = $employee->faceProfile()->firstOrCreate(
+                    [],
+                    [
+                        'is_active' => false,
+                    ]
+                );
+
+                foreach ($request->file('images') as $index => $image) {
+
+                    // Simpan foto di private storage.
+                    $path = $image->store(
+                        "face-profiles/{$employee->id}",
+                        'private'
+                    );
+
+                    if (! $path) {
+                        throw new \RuntimeException(
+                            'Gagal menyimpan foto wajah.'
+                        );
+                    }
+
+                    $storedPaths[] = $path;
+
+                    // Simpan informasi foto ke database.
+                    $faceProfile->images()->create([
+                        'image_path' => $path,
+                        'angle' => $request->input("angles.{$index}") ?: 'other',
+                    ]);
+                }
+            });
+        } catch (\Throwable $exception) {
+
+            // Hapus file jika proses database gagal.
+            foreach ($storedPaths as $path) {
+                Storage::disk('private')->delete($path);
+            }
+
+            throw $exception;
+        }
+
+        $faceProfile = $employee->faceProfile()->with('images')->first();
+
+        return response()->json([
+            'message' => 'Foto wajah berhasil diunggah.',
+            'data' => [
+                'employee_id' => $employee->id,
+                'face_profile_id' => $faceProfile->id,
+                'total_images' => $faceProfile->images->count(),
+                'images' => $faceProfile->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'angle' => $image->angle,
+                        'created_at' => $image->created_at,
+                    ];
+                }),
+            ],
+        ], 201);
     }
 
     public function deactivate(Request $request, int $userId): JsonResponse
