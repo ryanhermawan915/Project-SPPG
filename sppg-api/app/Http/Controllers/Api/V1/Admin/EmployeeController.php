@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+
 class EmployeeController extends Controller
 {
     public function store(Request $request): JsonResponse
@@ -111,6 +113,7 @@ class EmployeeController extends Controller
         ]);
     }
 
+    
     public function show(Request $request, int $userId): JsonResponse
     {
         // Hanya admin yang boleh mengakses detail pegawai.
@@ -120,7 +123,10 @@ class EmployeeController extends Controller
             ], 403);
         }
 
-        $employee = User::with('employeeProfile')
+        $employee = User::with([
+            'employeeProfile',
+            'faceProfile.images',
+        ])
             ->where('role', 'employee')
             ->find($userId);
 
@@ -131,6 +137,7 @@ class EmployeeController extends Controller
         }
 
         $profile = $employee->employeeProfile;
+        $faceProfile = $employee->faceProfile;
 
         return response()->json([
             'message' => 'Detail pegawai berhasil diambil.',
@@ -147,6 +154,21 @@ class EmployeeController extends Controller
                 'approved_by' => $employee->approved_by,
                 'approved_at' => $employee->approved_at,
                 'created_at' => $employee->created_at,
+
+                'face_profile' => $faceProfile ? [
+                    'id' => $faceProfile->id,
+                    'is_active' => $faceProfile->is_active,
+                    'model_version' => $faceProfile->model_version,
+                    'registered_at' => $faceProfile->registered_at,
+                    'total_images' => $faceProfile->images->count(),
+                    'images' => $faceProfile->images->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'angle' => $image->angle,
+                            'created_at' => $image->created_at,
+                        ];
+                    })->values(),
+                ] : null,
             ],
         ]);
     }
@@ -336,6 +358,94 @@ class EmployeeController extends Controller
                 }),
             ],
         ], 201);
+    }
+
+    public function deleteFaceImage(
+        Request $request,
+        int $userId,
+        int $imageId
+    ): JsonResponse {
+        // Hanya admin yang boleh menghapus foto wajah.
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        $employee = User::where('role', 'employee')->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        $faceProfile = $employee->faceProfile;
+
+        if (! $faceProfile) {
+            return response()->json([
+                'message' => 'Profil wajah pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        $faceImage = $faceProfile->images()->find($imageId);
+
+        if (! $faceImage) {
+            return response()->json([
+                'message' => 'Foto wajah tidak ditemukan.',
+            ], 404);
+        }
+
+        $imagePath = $faceImage->image_path;
+
+        // Hapus data foto dan perbarui profil dalam transaksi database.
+        $result = DB::transaction(function () use ($faceImage, $faceProfile) {
+            $faceImage->delete();
+
+            $totalImages = $faceProfile->images()->count();
+
+            // Nonaktifkan dan reset profil jika tidak ada foto tersisa.
+            if ($totalImages === 0) {
+                $faceProfile->update([
+                    'is_active' => false,
+                    'reference_path' => null,
+                    'model_version' => null,
+                    'registered_at' => null,
+                ]);
+            }
+
+            return [
+                'total_images' => $totalImages,
+                'is_active' => $faceProfile->fresh()->is_active,
+            ];
+        });
+
+        // Hapus file fisik setelah transaksi database berhasil.
+        $fileCleanupPending = false;
+
+        if (Storage::disk('private')->exists($imagePath)) {
+            if (! Storage::disk('private')->delete($imagePath)) {
+                $fileCleanupPending = true;
+
+                Log::warning('Gagal menghapus file foto wajah.', [
+                    'employee_id' => $employee->id,
+                    'image_id' => $imageId,
+                    'image_path' => $imagePath,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Foto wajah berhasil dihapus.',
+            'data' => [
+                'employee_id' => $employee->id,
+                'face_profile_id' => $faceProfile->id,
+                'deleted_image_id' => $imageId,
+                'total_images' => $result['total_images'],
+                'is_active' => $result['is_active'],
+                'file_cleanup_pending' => $fileCleanupPending,
+            ],
+        ]);
     }
 
     public function deactivate(Request $request, int $userId): JsonResponse

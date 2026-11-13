@@ -82,7 +82,12 @@ Route::prefix('v1/admin')
             Route::patch('/{id}/reject', [AdminLeaveRequestController::class, 'reject']);
         });
 
+        // Employee face images
         Route::post('/employees/{userId}/face-images', [EmployeeController::class, 'uploadFaceImages']);
+        Route::delete(
+            '/employees/{userId}/face-images/{imageId}',
+            [EmployeeController::class, 'deleteFaceImage']
+        );
 
     });
 
