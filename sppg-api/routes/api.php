@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Admin\AcademicPeriodController;
 use App\Http\Controllers\Api\V1\Admin\SchoolLocationController;
 use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
 use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 
 
 // Endpoint user
@@ -41,6 +42,14 @@ Route::prefix('v1/auth')->group(function () {
 Route::prefix('v1/admin')
     ->middleware(['auth:sanctum', 'password.changed'])
     ->group(function () {
+        
+        // Admin dashboard
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('/dashboard/monthly-attendance', [
+            AdminDashboardController::class,
+            'monthlyAttendance'
+        ]);
 
         // Employee management
         Route::post('/employees', [EmployeeController::class, 'store']);

@@ -210,7 +210,7 @@ public function approve(Request $request, $id)
             // Cari jadwal aktif berdasarkan hari.
             $schedule = WorkSchedule::where(
                 'day_of_week',
-                $date->dayOfWeekIso
+                $date->dayOfWeek
             )
                 ->where('is_active', true)
                 ->first();

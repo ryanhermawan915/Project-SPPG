@@ -119,7 +119,7 @@ class DashboardController extends Controller
         );
 
         foreach ($datePeriod as $date) {
-            if (in_array($date->dayOfWeekIso, $activeWorkDays)) {
+            if (in_array($date->dayOfWeek, $activeWorkDays)) {
                 $workingDays++;
             }
         }
@@ -279,7 +279,7 @@ class DashboardController extends Controller
 
                 foreach ($datePeriod as $date) {
                     if (in_array(
-                        $date->dayOfWeekIso,
+                        $date->dayOfWeek,
                         $activeWorkDays
                     )) {
                         $workingDays++;
