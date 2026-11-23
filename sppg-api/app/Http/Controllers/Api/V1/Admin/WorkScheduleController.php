@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\WorkSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WorkScheduleController extends Controller
 {
@@ -52,10 +53,8 @@ class WorkScheduleController extends Controller
     /**
      * Menampilkan detail satu jadwal.
      */
-    public function show(
-        Request $request,
-        int $id
-    ): JsonResponse {
+    public function show(Request $request, int $id): JsonResponse
+    {
         if ($denied = $this->ensureAdmin($request)) {
             return $denied;
         }
@@ -86,9 +85,10 @@ class WorkScheduleController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'day_of_week' => [
-                'nullable',
+                'required',
                 'integer',
                 'between:0,6',
+                Rule::unique('work_schedules', 'day_of_week'),
             ],
             'start_time' => [
                 'required',
@@ -141,9 +141,11 @@ class WorkScheduleController extends Controller
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'day_of_week' => [
                 'sometimes',
-                'nullable',
+                'required',
                 'integer',
                 'between:0,6',
+                Rule::unique('work_schedules', 'day_of_week')
+                    ->ignore($schedule->id),
             ],
             'start_time' => [
                 'sometimes',
@@ -208,6 +210,18 @@ class WorkScheduleController extends Controller
             return response()->json([
                 'message' => 'Jadwal kerja tidak ditemukan.',
             ], 404);
+        }
+
+        $duplicate = WorkSchedule::query()
+            ->where('day_of_week', $schedule->day_of_week)
+            ->where('is_active', true)
+            ->where('id', '!=', $schedule->id)
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'message' => 'Sudah ada jadwal aktif untuk hari tersebut.',
+            ], 422);
         }
 
         $schedule->update([
