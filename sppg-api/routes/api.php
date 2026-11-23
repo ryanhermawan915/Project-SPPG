@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Admin\WorkScheduleController;
 use App\Http\Controllers\Api\V1\Admin\AcademicPeriodController;
 use App\Http\Controllers\Api\V1\Admin\SchoolLocationController;
 use App\Http\Controllers\Api\V1\Admin\LeaveRequestController as AdminLeaveRequestController;
+use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
 
 
 // Endpoint user
@@ -80,6 +81,13 @@ Route::prefix('v1/admin')
             Route::get('/{id}', [AdminLeaveRequestController::class, 'show']);
             Route::patch('/{id}/approve', [AdminLeaveRequestController::class, 'approve']);
             Route::patch('/{id}/reject', [AdminLeaveRequestController::class, 'reject']);
+        });
+
+        // Admin attendance
+        Route::prefix('attendances')->group(function () {
+            Route::get('/', [AdminAttendanceController::class, 'index']);
+            Route::get('/{id}', [AdminAttendanceController::class, 'show']);
+            Route::patch('/{id}/status', [AdminAttendanceController::class, 'updateStatus']);
         });
 
         // Employee face images

@@ -42,4 +42,9 @@ class AttendanceRecord extends Model
     {
         return $this->hasMany(AttendanceEvent::class);
     }
+
+    public function statusChanges(): HasMany
+    {
+        return $this->hasMany(AttendanceStatusChange::class);
+    }
 }

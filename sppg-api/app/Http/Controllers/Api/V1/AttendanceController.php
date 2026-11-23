@@ -317,4 +317,37 @@ public function history(Request $request)
     ], 200);
 }
 
+// Mengambil status presensi pegawai hari ini
+public function today(Request $request)
+{
+    // 1. Ambil pengguna yang sedang login
+    $user = $request->user();
+
+    // 2. Periksa status akun
+    if (
+        $user->role !== 'employee' ||
+        $user->account_status !== 'active'
+    ) {
+        return response()->json([
+            'message' => 'Akun tidak memiliki akses presensi.',
+        ], 403);
+    }
+
+    // 3. Ambil tanggal hari ini berdasarkan timezone aplikasi
+    $today = Carbon::now()->toDateString();
+
+    // 4. Cari data presensi milik pengguna hari ini
+    $attendance = AttendanceRecord::with('workSchedule')
+        ->where('user_id', $user->id)
+        ->whereDate('attendance_date', $today)
+        ->first();
+
+    // 5. Kirim respons
+    return response()->json([
+        'message' => 'Data presensi hari ini berhasil diambil.',
+        'date' => $today,
+        'data' => $attendance,
+    ], 200);
+}
+
 }

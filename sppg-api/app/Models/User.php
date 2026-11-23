@@ -73,6 +73,11 @@ class User extends Authenticatable
         return $this->hasMany(AttendanceRecord::class);
     }
 
+    public function attendanceStatusChanges(): HasMany
+    {
+        return $this->hasMany(AttendanceStatusChange::class, 'admin_id');
+    }
+
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
