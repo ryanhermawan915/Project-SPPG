@@ -83,7 +83,14 @@ Route::prefix('v1/admin')
         });
 
         // Employee face images
-        Route::post('/employees/{userId}/face-images', [EmployeeController::class, 'uploadFaceImages']);
+        Route::post(
+            '/employees/{userId}/face-images', 
+            [EmployeeController::class, 'uploadFaceImages']
+            );
+        Route::get(
+            '/employees/{userId}/face-images/{imageId}',
+            [EmployeeController::class, 'showFaceImage']
+        );
         Route::delete(
             '/employees/{userId}/face-images/{imageId}',
             [EmployeeController::class, 'deleteFaceImage']

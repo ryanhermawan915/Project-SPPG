@@ -7,6 +7,7 @@ use App\Models\AcademicPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class AcademicPeriodController extends Controller
 {
@@ -165,7 +166,7 @@ class AcademicPeriodController extends Controller
             'data' => $period->fresh(),
         ]);
     }
-
+    
     public function activate(Request $request, int $id): JsonResponse
     {
         if ($error = $this->ensureAdmin($request)) {
@@ -180,7 +181,17 @@ class AcademicPeriodController extends Controller
             ], 404);
         }
 
-        $period->update(['is_active' => true]);
+        DB::transaction(function () use ($period) {
+            // Nonaktifkan semua periode akademik.
+            AcademicPeriod::query()->update([
+                'is_active' => false,
+            ]);
+
+            // Aktifkan periode yang dipilih.
+            $period->update([
+                'is_active' => true,
+            ]);
+        });
 
         return response()->json([
             'message' => 'Periode akademik berhasil diaktifkan.',

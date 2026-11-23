@@ -12,10 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
-        ]);
-    })
+    $middleware->alias([
+        'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
+    ]);
+
+    $middleware->redirectGuestsTo(
+        fn () => null
+    );
+})
         ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

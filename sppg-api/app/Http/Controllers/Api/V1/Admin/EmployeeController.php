@@ -360,6 +360,76 @@ class EmployeeController extends Controller
         ], 201);
     }
 
+    public function showFaceImage(
+        Request $request,
+        int $userId,
+        int $imageId
+    ) {
+        // Hanya admin yang boleh melihat foto wajah.
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+            ], 403);
+        }
+
+        // Cari pegawai berdasarkan ID.
+        $employee = User::where('role', 'employee')->find($userId);
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan.',
+            ], 404);
+        }
+
+        // Ambil foto yang benar-benar dimiliki pegawai tersebut.
+        $faceImage = $employee->faceProfile
+            ? $employee->faceProfile->images()->find($imageId)
+            : null;
+
+        if (! $faceImage) {
+            return response()->json([
+                'message' => 'Foto wajah tidak ditemukan.',
+            ], 404);
+        }
+
+        $imagePath = $faceImage->image_path;
+        $disk = Storage::disk('private');
+
+        // Pastikan file tersedia di private storage.
+        if (! $disk->exists($imagePath)) {
+            return response()->json([
+                'message' => 'File foto wajah tidak ditemukan.',
+            ], 404);
+        }
+       
+        // Ambil tipe file gambar.
+        $mimeType = $disk->mimeType($imagePath);
+
+        // Ambil ukuran file.
+        $fileSize = $disk->size($imagePath);
+
+        // Kirim gambar sebagai respons stream.
+        return response()->stream(
+            function () use ($disk, $imagePath) {
+                $stream = $disk->readStream($imagePath);
+
+                if ($stream === false) {
+                    return;
+                }
+
+                fpassthru($stream);
+                fclose($stream);
+            },
+            200,
+            [
+                'Content-Type' => $mimeType,
+                'Content-Length' => $fileSize,
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
     public function deleteFaceImage(
         Request $request,
         int $userId,
